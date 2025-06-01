@@ -68,6 +68,20 @@
 	// Main.
 		var	delay = 325,
 			locked = false;
+		// Function to update section indicator
+		function updateSectionIndicator(id) {
+			var sectionNames = {
+				'projects': 'Projects',
+				'work': 'Work Experience',
+				'other': 'Other Relevant Involvements',
+				'contact': 'Contact',
+				'elements': 'Elements'
+			};
+			
+			var $sectionName = $('#section-name');
+			var displayName = sectionNames[id] || id.charAt(0).toUpperCase() + id.slice(1);
+			$sectionName.text(displayName);
+		}
 
 		// Methods.
 			$main._show = function(id, initial) {
@@ -98,10 +112,23 @@
 
 							// Show main, article.
 								$main.show();
-								$article.show();
-
-							// Activate article.
-								$article.addClass('active');
+								$article.show();							// Activate article.
+								$article.addClass('active');							// Update section indicator
+							updateSectionIndicator(id);							// Update fast navigation and highlight first item
+							setTimeout(function() {
+								populateNavigation();
+								// Reattach scroll listeners to ensure they work
+								attachScrollListeners();
+								// For immediate highlighting on page click
+								var $currentArticle = $main_articles.filter('.active');
+								if ($currentArticle.length > 0) {
+									var $headings = $currentArticle.find('h2.major');
+									if ($headings.length > 0) {
+										var firstHeadingId = $headings.first().attr('id');
+										updateActiveNavItem(firstHeadingId);
+									}
+								}
+							}, 100);
 
 							// Unlock.
 								locked = false;
@@ -138,7 +165,22 @@
 								// Activate article.
 									setTimeout(function() {
 
-										$article.addClass('active');
+										$article.addClass('active');										// Update section indicator
+										updateSectionIndicator(id);										// Update fast navigation and highlight first item
+										setTimeout(function() {
+											populateNavigation();
+											// Reattach scroll listeners to ensure they work
+											attachScrollListeners();
+											// For immediate highlighting on article switch
+											var $currentArticle = $main_articles.filter('.active');
+											if ($currentArticle.length > 0) {
+												var $headings = $currentArticle.find('h2.major');
+												if ($headings.length > 0) {
+													var firstHeadingId = $headings.first().attr('id');
+													updateActiveNavItem(firstHeadingId);
+												}
+											}
+										}, 100);
 
 										// Window stuff.
 											$window
@@ -168,9 +210,7 @@
 
 								// Hide header, footer.
 									$header.hide();
-									$footer.hide();
-
-								// Show main, article.
+									$footer.hide();								// Show main, article.
 									$main.show();
 									$article.show();
 
@@ -178,6 +218,12 @@
 									setTimeout(function() {
 
 										$article.addClass('active');
+
+										// Update section indicator
+										updateSectionIndicator(id);
+
+										// Update fast navigation
+										setTimeout(populateNavigation, 100);
 
 										// Window stuff.
 											$window
@@ -216,10 +262,11 @@
 						if (locked) {
 
 							// Mark as switching.
-								$body.addClass('is-switching');
-
-							// Deactivate article.
+								$body.addClass('is-switching');							// Deactivate article.
 								$article.removeClass('active');
+
+							// Hide fast navigation
+								$fastNav.removeClass('visible');
 
 							// Hide article, main.
 								$article.hide();
@@ -248,10 +295,11 @@
 						}
 
 					// Lock.
-						locked = true;
-
-				// Deactivate article.
+						locked = true;				// Deactivate article.
 					$article.removeClass('active');
+
+				// Hide fast navigation
+					$fastNav.removeClass('visible');
 
 				// Hide article.
 					setTimeout(function() {
@@ -285,18 +333,13 @@
 
 
 			};
-
 		// Articles.
 			$main_articles.each(function() {
 
 				var $this = $(this);
 
-				// Close.
-					$('<div class="close">Close</div>')
-						.appendTo($this)
-						.on('click', function() {
-							location.hash = '';
-						});
+				// Don't add close button to individual articles anymore
+				// The global close button will handle this
 
 				// Prevent clicks from inside article from bubbling.
 					$this.on('click', function(event) {
@@ -305,8 +348,19 @@
 
 			});
 
+		// Global Close Button
+			var $globalClose = $('#global-close');
+			
+			$globalClose.on('click', function() {
+				location.hash = '';
+			});
 		// Events.
 			$body.on('click', function(event) {
+
+				// Don't hide article if clicking on fast navigation
+				if ($(event.target).closest('#fast-nav').length > 0) {
+					return;
+				}
 
 				// Article visible? Hide.
 					if ($body.hasClass('is-article-visible'))
@@ -384,7 +438,6 @@
 					});
 
 			}
-
 		// Initialize.
 
 			// Hide main, articles.
@@ -397,5 +450,168 @@
 					$window.on('load', function() {
 						$main._show(location.hash.substr(1), true);
 					});
+
+		// Mouse parallax effect for background
+		var mouseMoveHandler = function(e) {
+			// Get mouse position relative to viewport
+			var mouseX = e.clientX;
+			var mouseY = e.clientY;
+			
+			// Get viewport dimensions
+			var viewportWidth = window.innerWidth;
+			var viewportHeight = window.innerHeight;
+			
+			// Calculate position as percentage from center (-0.5 to 0.5)
+			var xPercent = (mouseX / viewportWidth) - 0.5;
+			var yPercent = (mouseY / viewportHeight) - 0.5;
+			
+			// Apply subtle movement (adjust multiplier for more/less effect)
+			var moveX = xPercent * 30; // 30px max movement
+			var moveY = yPercent * 30; // 30px max movement
+			
+			// Update CSS custom properties
+			document.documentElement.style.setProperty('--bg-x', moveX + 'px');
+			document.documentElement.style.setProperty('--bg-y', moveY + 'px');
+		};
+
+		// Add mouse move listener
+		document.addEventListener('mousemove', mouseMoveHandler);
+		// Fast Navigation Functionality
+			var $fastNav = $('#fast-nav'),
+				$navList = $('#nav-list');
+
+			// Function to populate navigation based on current article
+			function populateNavigation() {
+				$navList.empty();
+				
+				// Get the currently visible article
+				var $currentArticle = $main_articles.filter('.active');				if ($currentArticle.length > 0) {
+					// Find all h2 elements in the current article
+					var $headings = $currentArticle.find('h2.major');
+					
+					if ($headings.length > 0) {
+						$headings.each(function(index) {
+							var $heading = $(this);
+							var headingText = $heading.text();
+							var headingId = 'heading-' + index;
+							
+							// Add ID to heading if it doesn't have one
+							if (!$heading.attr('id')) {
+								$heading.attr('id', headingId);
+							} else {
+								headingId = $heading.attr('id');
+							}
+							
+							// Create navigation item
+							var $navItem = $('<li class="section-item"></li>');
+							var $navLink = $('<a href="#' + headingId + '">' + headingText + '</a>');
+							
+							$navItem.append($navLink);
+							$navList.append($navItem);
+							
+							// Add click handler
+							$navLink.on('click', function(e) {
+								e.preventDefault();
+								e.stopPropagation(); // Prevent homepage navigation
+								scrollToHeading(headingId);
+							});
+						});
+								// Show fast navigation
+						$fastNav.addClass('visible');
+						
+					} else {
+						// Hide fast navigation if no headings
+						$fastNav.removeClass('visible');
+					}
+				} else {
+					// Hide fast navigation when no article is active
+					$fastNav.removeClass('visible');
+				}
+			}
+
+			// Function to scroll to heading within article
+			function scrollToHeading(headingId) {
+				var $target = $('#' + headingId);
+				if ($target.length > 0) {
+					var $article = $target.closest('article');
+					if ($article.hasClass('scrollable-projects')) {
+						// For scrollable articles, scroll within the article
+						var targetPosition = $target.position().top + $article.scrollTop() - 20;
+						$article.animate({
+							scrollTop: targetPosition
+						}, 500);
+					} else {
+						// For regular articles, just scroll to top
+						$article.scrollTop(0);
+					}
+					
+					// Update active state immediately
+					updateActiveNavItem(headingId);
+				}
+			}
+
+			// Function to update active navigation item
+			function updateActiveNavItem(activeId) {
+				$navList.find('a').removeClass('active');
+				$navList.find('a[href="#' + activeId + '"]').addClass('active');
+			}			// Function to check which heading is currently visible
+			function updateActiveHeading() {
+				var $currentArticle = $main_articles.filter('.active');
+				
+				if ($currentArticle.length > 0 && $currentArticle.hasClass('scrollable-projects')) {
+					var $headings = $currentArticle.find('h2.major');
+					var scrollTop = $currentArticle.scrollTop();
+					var articleHeight = $currentArticle.outerHeight();
+					var scrollHeight = $currentArticle.prop('scrollHeight');
+					var activeHeading = null;
+					
+					// Check if we're at the bottom of the scrollable content
+					var isAtBottom = (scrollTop + articleHeight >= scrollHeight - 10);
+					
+					if (isAtBottom && $headings.length > 0) {
+						// If at bottom, highlight the last heading
+						activeHeading = $headings.last().attr('id');
+					} else {
+						// Find the currently visible heading
+						$headings.each(function() {
+							var $heading = $(this);
+							var headingTop = $heading.position().top + scrollTop;
+							
+							if (headingTop <= scrollTop + 100) {
+								activeHeading = $heading.attr('id');
+							}
+						});
+					}
+					
+					if (activeHeading) {
+						updateActiveNavItem(activeHeading);
+					}
+				}
+			}// Listen for article changes
+			$main.on('keydown', function(e) {
+				// Update navigation after article change
+				setTimeout(populateNavigation, 100);
+			});			// Function to attach scroll listeners to scrollable articles
+			function attachScrollListeners() {
+				// Remove existing listeners first
+				$main_articles.filter('.scrollable-projects').off('scroll.fastNav');
+				
+				// Attach scroll listeners to all scrollable articles
+				var $scrollableArticles = $main_articles.filter('.scrollable-projects');
+				$scrollableArticles.on('scroll.fastNav', function() {
+					updateActiveHeading();
+				});
+			}
+
+			// Initial attachment of scroll listeners
+			attachScrollListeners();
+
+			// Prevent fast navigation clicks from bubbling to body
+			$fastNav.on('click', function(event) {
+				event.stopPropagation();
+			});
+
+			// Initial population when page loads
+			setTimeout(populateNavigation, 500);
 
 })(jQuery);
