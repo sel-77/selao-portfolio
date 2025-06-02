@@ -602,26 +602,31 @@
 					// Hide fast navigation when no article is active
 					$fastNav.removeClass('visible');
 				}
-			}
-
-			// Function to scroll to heading within article
+			}			// Function to scroll to heading within article
 			function scrollToHeading(headingId) {
 				var $target = $('#' + headingId);
 				if ($target.length > 0) {
 					var $article = $target.closest('article');
 					if ($article.hasClass('scrollable-projects')) {
 						// For scrollable articles, scroll within the article
-						var targetPosition = $target.position().top + $article.scrollTop() - 20;
+						// Get the native DOM element to use offsetTop
+						var targetElement = $target[0];
+						var articleElement = $article[0];
+						
+						// Calculate position relative to the article container
+						var targetPosition = targetElement.offsetTop - 20;
+						
 						$article.animate({
 							scrollTop: targetPosition
-						}, 500);
+						}, 500, function() {
+							// Update active state after animation completes
+							updateActiveNavItem(headingId);
+						});
 					} else {
 						// For regular articles, just scroll to top
 						$article.scrollTop(0);
+						updateActiveNavItem(headingId);
 					}
-					
-					// Update active state immediately
-					updateActiveNavItem(headingId);
 				}
 			}
 
