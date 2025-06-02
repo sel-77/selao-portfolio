@@ -16,8 +16,8 @@
 	var pageCloseSound = document.getElementById('pageCloseSound');
 
 	// Volume settings - adjust these to balance the sounds
-	var pageOpenVolume = 0.45;   // Page open sound volume (0.0 to 1.0)
-	var pageCloseVolume = 0.15; // Page close sound volume (0.0 to 1.0)
+	var pageOpenVolume = 0.65;   // Page open sound volume (0.0 to 1.0)
+	var pageCloseVolume = 0.25; // Page close sound volume (0.0 to 1.0)
 
 	// Check if audio files are loaded
 	var soundsReady = false;
