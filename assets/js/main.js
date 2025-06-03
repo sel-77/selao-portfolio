@@ -553,14 +553,14 @@
 		document.addEventListener('mousemove', mouseMoveHandler);
 		// Fast Navigation Functionality
 			var $fastNav = $('#fast-nav'),
-				$navList = $('#nav-list');
-
-			// Function to populate navigation based on current article
+				$navList = $('#nav-list');			// Function to populate navigation based on current article
 			function populateNavigation() {
 				$navList.empty();
 				
 				// Get the currently visible article
-				var $currentArticle = $main_articles.filter('.active');				if ($currentArticle.length > 0) {
+				var $currentArticle = $main_articles.filter('.active');
+				
+				if ($currentArticle.length > 0) {
 					// Find all h2 elements in the current article
 					var $headings = $currentArticle.find('h2.major');
 					
@@ -568,14 +568,13 @@
 						$headings.each(function(index) {
 							var $heading = $(this);
 							var headingText = $heading.text();
-							var headingId = 'heading-' + index;
+							// Create a more stable ID based on the text content and article ID
+							var articleId = $currentArticle.attr('id') || 'article';
+							var cleanText = headingText.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+							var headingId = articleId + '-' + cleanText + '-' + index;
 							
-							// Add ID to heading if it doesn't have one
-							if (!$heading.attr('id')) {
-								$heading.attr('id', headingId);
-							} else {
-								headingId = $heading.attr('id');
-							}
+							// Always set the ID (overwrite any existing one to ensure consistency)
+							$heading.attr('id', headingId);
 							
 							// Create navigation item
 							var $navItem = $('<li class="section-item"></li>');
@@ -591,7 +590,8 @@
 								scrollToHeading(headingId);
 							});
 						});
-								// Show fast navigation
+						
+						// Show fast navigation
 						$fastNav.addClass('visible');
 						
 					} else {
@@ -605,16 +605,27 @@
 			}			// Function to scroll to heading within article
 			function scrollToHeading(headingId) {
 				var $target = $('#' + headingId);
+				
 				if ($target.length > 0) {
 					var $article = $target.closest('article');
+					
 					if ($article.hasClass('scrollable-projects')) {
 						// For scrollable articles, scroll within the article
-						// Get the native DOM element to use offsetTop
+						// Calculate position by traversing up to find position relative to article
 						var targetElement = $target[0];
 						var articleElement = $article[0];
+						var targetTop = 0;
 						
-						// Calculate position relative to the article container
-						var targetPosition = targetElement.offsetTop - 20;
+						// Walk up the DOM tree to calculate total offset within the article
+						var currentElement = targetElement;
+						while (currentElement && currentElement !== articleElement) {
+							targetTop += currentElement.offsetTop;
+							currentElement = currentElement.offsetParent;
+							// Stop if we've reached the article or gone beyond it
+							if (currentElement === articleElement) break;
+						}
+						
+						var targetPosition = targetTop - 20;
 						
 						$article.animate({
 							scrollTop: targetPosition
